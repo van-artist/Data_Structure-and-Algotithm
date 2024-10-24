@@ -5,23 +5,12 @@
 
 ## 数据结构
 
-- [数组](./array)
-- [链表](./linkedlist)
-- [栈](./stack)
-- [队列](./queue)
-- [树](./tree)
-- [图](./graph)
-- [堆](./heap)
-- [哈希表](./hashtable)
-- [字符串](./string)
-- [二叉搜索树](./binarysearchtree)
-
-## 算法
-
-- [排序算法](./sort)
-- [查找算法](./search)
-- [递归算法](./recursion)
-- [动态规划](./dynamicprogramming)
-- [贪心算法](./greedy)
-- [回溯算法](./backtracking)
-- [分治算法](./divideandconquer)
+- [数组](./array/)
+- [链表](./linkedlist/)
+- [栈](./stack/)
+- [队列](./queue/)
+- [树](./tree/)
+- [图](.//)
+- [堆](./heap/)
+- [哈希表](./hash/)
+- [字符串](./string/)
