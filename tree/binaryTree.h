@@ -20,7 +20,7 @@ using BinaryTreeNodePtr = BinaryTreeNode<T> *;
 template <typename T>
 class BinaryTree
 {
-private:
+protected:
     BinaryTreeNodePtr<T> root;
     void deleteTree(BinaryTreeNodePtr<T> node);
 
