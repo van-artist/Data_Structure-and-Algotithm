@@ -4,19 +4,22 @@
 #include <algorithm>
 #include <queue>
 #include <iostream>
+#include <limits>
 #include <functional>
-#include "graph.hpp"
+#include "Graph.hpp"
 
 template <typename T>
 class MatrixGraph : public Graph<T>
 {
 private:
+    using Edge = std::tuple<int, int, T>;
     std::vector<std::vector<T>> matrix;
     int edgeNums;
     bool directed;
 
 public:
-    MatrixGraph(int numVertices, bool isDirected = false) : matrix(numVertices, std::vector<T>(numVertices, 0)), directed(isDirected) {}
+    MatrixGraph(int numVertices, bool isDirected = false)
+        : matrix(numVertices, std::vector<T>(numVertices, 0)), directed(isDirected), edgeNums(0) {}
     void add_edge(int fromVertex, int toVertex, T weight) override;
     void remove_edge(int fromVertex, int toVertex) override;
     bool has_edge(int fromVertex, int toVertex) override;
@@ -27,6 +30,7 @@ public:
     void print() override;
     void dfs(int vertex, std::vector<bool> &visited, std::function<void(int)> func);
     void bfs(int vertex, std::vector<bool> &visited, std::function<void(int)> func);
+    std::vector<std::vector<int>> Floyd();
     ~MatrixGraph() {}
 };
 
@@ -70,27 +74,27 @@ void MatrixGraph<T>::bfs(int vertex, std::vector<bool> &visited, std::function<v
 template <typename T>
 void MatrixGraph<T>::add_edge(int fromVertex, int toVertex, T weight)
 {
-    int new_size = std::max(std::max(fromVertex, toVertex), edgeNums) + 1;
-    if (matrix.size() < new_size)
+    int n = std::max({fromVertex, toVertex}) + 1;
+    if (n > matrix.size())
     {
-        matrix.resize(new_size);
-        for (auto &row : matrix)
-        {
-            row.resize(new_size);
-        }
+        matrix.resize(n, std::vector<T>(n, 0));
+    }
+    if (matrix[fromVertex][toVertex] == 0)
+    {
+        edgeNums++; // 增加边计数
     }
     matrix[fromVertex][toVertex] = weight;
     if (!directed)
     {
         matrix[toVertex][fromVertex] = weight;
     }
-    edgeNums++;
 }
 
 template <typename T>
 void MatrixGraph<T>::remove_edge(int fromVertex, int toVertex)
 {
-    if (matrix[fromVertex][toVertex] != 0)
+    if (fromVertex < matrix.size() && toVertex < matrix.size() &&
+        matrix[fromVertex][toVertex] != 0)
     {
         matrix[fromVertex][toVertex] = 0;
         if (!directed)
@@ -100,6 +104,7 @@ void MatrixGraph<T>::remove_edge(int fromVertex, int toVertex)
         edgeNums--;
     }
 }
+
 template <typename T>
 bool MatrixGraph<T>::has_edge(int fromVertex, int toVertex)
 {
@@ -145,5 +150,26 @@ void MatrixGraph<T>::print()
         std::cout << std::endl;
     }
 }
-
+template <typename T>
+std::vector<std::vector<int>> Floyd()
+{
+    std::vector<std::vector<int>> min_path_len(matrix.size(), std::vector<int>(matrix.size(), std::numeric_limits<int>::max()));
+    for (int k = 0; k < matrix.size(); k++)
+    {
+        for (int i = 0; i < matrix.size(); i++)
+        {
+            for (int j = 0; j < matrix.size(); j++)
+            {
+                if (min_path_len[i][j] != 0)
+                {
+                    if (min_path_len[i][j] > min_path_len[i][k] + min_path_len[k][j])
+                    {
+                        min_path_len[i][j] = min_path_len[i][k] + min_path_len[k][j];
+                    }
+                }
+            }
+        }
+    }
+    return min_path_len;
+}
 #endif // MATRIX_GRAPH_H
