@@ -1,6 +1,5 @@
 #ifndef LIST_GRAPH_HPP
 #define LIST_GRAPH_HPP
-
 #include <vector>
 #include <list>
 #include <queue>
@@ -35,17 +34,17 @@ public:
 
     friend std::ostream &operator<<(std::ostream &os, const Edge &edge)
     {
-        os << "(" << edge.from << ", " << edge.to << ", " << edge.weight << ")";
+        os << "(" << edge.from << ", " << edge.to << ", " << edge.weight << ")" << std::endl;
         return os;
     }
 };
 
 template <typename T, typename V>
-class ListGraph : public Graph<T>
+class ListGraph : public Graph<T, V>
 {
 private:
-    using Edge = Edge<T, V>;
-    std::vector<std::list<Edge>> adjList;
+    using EdgeType = Edge<T, V>;
+    std::vector<std::list<EdgeType>> adjList;
     int edgeNums = 0;
     bool directed;
 
@@ -61,11 +60,12 @@ private:
         }
         return nodeIndex[node];
     }
+    std::vector<T> dijkstra(const V &startVertex, std::vector<int> &prev);
 
 public:
-    ListGraph(int numVertices, bool isDirected = false)
+    ListGraph(int numVertices = 0, bool isDirected = false)
         : adjList(numVertices), directed(isDirected) {}
-
+    void add_vertex(const V &vertex);
     void add_edge(const V &fromVertex, const V &toVertex, T weight) override;
     void remove_edge(const V &fromVertex, const V &toVertex) override;
     bool has_edge(const V &fromVertex, const V &toVertex) override;
@@ -74,13 +74,25 @@ public:
     int get_num_vertices() override;
     int get_num_edges() override;
     void print() override;
-    std::vector<Edge> findMST();
-    std::vector<Edge> findMinPath(const V &startVertex);
+    std::vector<EdgeType> findMST();
+    std::vector<EdgeType> findMinPath(const V &startVertex, const V &endVertex);
+    std::unordered_map<V, std::vector<typename ListGraph<T, V>::EdgeType>> findMinPath(const V &startVertex);
 };
-
+template <typename T, typename V>
+void ListGraph<T, V>::add_vertex(const V &vertex)
+{
+    if (nodeIndex.find(vertex) == nodeIndex.end())
+    {
+        nodeIndex[vertex] = indexNode.size();
+        indexNode.push_back(vertex);
+        adjList.emplace_back(); // 添加新的邻接表
+    }
+}
 template <typename T, typename V>
 void ListGraph<T, V>::add_edge(const V &fromVertex, const V &toVertex, T weight)
 {
+    add_vertex(fromVertex);
+    add_vertex(toVertex);
     int fromIdx = getNodeIndex(fromVertex);
     int toIdx = getNodeIndex(toVertex);
 
@@ -98,12 +110,12 @@ void ListGraph<T, V>::remove_edge(const V &fromVertex, const V &toVertex)
     int fromIdx = getNodeIndex(fromVertex);
     int toIdx = getNodeIndex(toVertex);
 
-    adjList[fromIdx].remove_if([&](const Edge &edge)
+    adjList[fromIdx].remove_if([&](const EdgeType &edge)
                                { return edge.getFrom() == fromVertex && edge.getTo() == toVertex; });
 
     if (!directed)
     {
-        adjList[toIdx].remove_if([&](const Edge &edge)
+        adjList[toIdx].remove_if([&](const EdgeType &edge)
                                  { return edge.getFrom() == toVertex && edge.getTo() == fromVertex; });
     }
     edgeNums--;
@@ -127,7 +139,7 @@ template <typename T, typename V>
 T ListGraph<T, V>::get_edge(const V &fromVertex, const V &toVertex)
 {
     int fromIdx = getNodeIndex(fromVertex);
-    for (const Edge &edge : adjList[fromIdx])
+    for (const EdgeType &edge : adjList[fromIdx])
     {
         if (edge.getTo() == toVertex)
         {
@@ -142,7 +154,7 @@ std::vector<V> ListGraph<T, V>::get_neighbors(const V &vertex)
 {
     int idx = getNodeIndex(vertex);
     std::vector<V> neighbors;
-    for (const Edge &edge : adjList[idx])
+    for (const EdgeType &edge : adjList[idx])
     {
         neighbors.push_back(edge.getTo());
     }
@@ -164,10 +176,10 @@ int ListGraph<T, V>::get_num_edges()
 template <typename T, typename V>
 void ListGraph<T, V>::print()
 {
-    for (int i = 0; i < adjList.size(); i++)
+    for (size_t i = 0; i < adjList.size(); i++)
     {
         std::cout << indexNode[i] << ": ";
-        for (const Edge &edge : adjList[i])
+        for (const EdgeType &edge : adjList[i])
         {
             std::cout << edge << " ";
         }
@@ -176,11 +188,11 @@ void ListGraph<T, V>::print()
 }
 
 template <typename T, typename V>
-std::vector<typename ListGraph<T, V>::Edge> ListGraph<T, V>::findMST()
+std::vector<typename ListGraph<T, V>::EdgeType> ListGraph<T, V>::findMST()
 {
-    std::vector<Edge> result;
+    std::vector<EdgeType> result;
     UnionFind uf(get_num_vertices());
-    std::vector<Edge> edges;
+    std::vector<EdgeType> edges;
 
     for (const auto &edgeList : adjList)
     {
@@ -204,29 +216,28 @@ std::vector<typename ListGraph<T, V>::Edge> ListGraph<T, V>::findMST()
     }
     return result;
 }
-
 template <typename T, typename V>
-std::vector<typename ListGraph<T, V>::Edge> ListGraph<T, V>::findMinPath(const V &startVertex)
+std::vector<T> ListGraph<T, V>::dijkstra(const V &startVertex, std::vector<int> &prev)
 {
     int n = get_num_vertices();
     int startIdx = getNodeIndex(startVertex);
 
     std::vector<T> dist(n, std::numeric_limits<T>::max());
-    std::priority_queue<Edge, std::vector<Edge>, std::greater<Edge>> edge_pq;
+    prev.assign(n, -1);
+    std::priority_queue<EdgeType, std::vector<EdgeType>, std::greater<EdgeType>> edge_pq;
+
     dist[startIdx] = 0;
     edge_pq.emplace(startVertex, startVertex, 0);
 
-    std::vector<Edge> result;
-
     while (!edge_pq.empty())
     {
-        Edge cur_min_edge = edge_pq.top();
+        EdgeType cur_min_edge = edge_pq.top();
         edge_pq.pop();
 
         V current = cur_min_edge.getTo();
         int currentIdx = getNodeIndex(current);
 
-        for (const Edge &edge : adjList[currentIdx])
+        for (const EdgeType &edge : adjList[currentIdx])
         {
             V neighbor = edge.getTo();
             int neighborIdx = getNodeIndex(neighbor);
@@ -235,12 +246,64 @@ std::vector<typename ListGraph<T, V>::Edge> ListGraph<T, V>::findMinPath(const V
             if (dist[currentIdx] + weight < dist[neighborIdx])
             {
                 dist[neighborIdx] = dist[currentIdx] + weight;
+                prev[neighborIdx] = currentIdx;
                 edge_pq.emplace(current, neighbor, dist[neighborIdx]);
-                result.push_back(Edge(startVertex, neighbor, dist[neighborIdx]));
             }
         }
     }
-    return result;
+
+    return dist;
+}
+
+template <typename T, typename V>
+std::unordered_map<V, std::vector<typename ListGraph<T, V>::EdgeType>>
+ListGraph<T, V>::findMinPath(const V &startVertex)
+{
+    std::vector<int> prev;
+    auto dist = dijkstra(startVertex, prev);
+
+    std::unordered_map<V, std::vector<EdgeType>> allPaths;
+    for (int i = 0; i < get_num_vertices(); ++i)
+    {
+        if (dist[i] == std::numeric_limits<T>::max())
+            continue;
+
+        std::vector<EdgeType> path;
+        for (int v = i; prev[v] != -1; v = prev[v])
+        {
+            const EdgeType &edge = *std::find_if(adjList[prev[v]].begin(), adjList[prev[v]].end(),
+                                                 [&](const EdgeType &e)
+                                                 { return getNodeIndex(e.getTo()) == v; });
+            path.push_back(edge);
+        }
+        std::reverse(path.begin(), path.end());
+        allPaths[indexNode[i]] = path;
+    }
+
+    return allPaths;
+}
+template <typename T, typename V>
+std::vector<typename ListGraph<T, V>::EdgeType>
+ListGraph<T, V>::findMinPath(const V &startVertex, const V &endVertex)
+{
+    std::vector<int> prev;
+    auto dist = dijkstra(startVertex, prev);
+
+    int endIdx = getNodeIndex(endVertex);
+    if (dist[endIdx] == std::numeric_limits<T>::max())
+        return {};
+
+    std::vector<EdgeType> path;
+    for (int v = endIdx; prev[v] != -1; v = prev[v])
+    {
+        const EdgeType &edge = *std::find_if(adjList[prev[v]].begin(), adjList[prev[v]].end(),
+                                             [&](const EdgeType &e)
+                                             { return getNodeIndex(e.getTo()) == v; });
+        path.push_back(edge);
+    }
+
+    std::reverse(path.begin(), path.end());
+    return path;
 }
 
 #endif // LIST_GRAPH_HPP
