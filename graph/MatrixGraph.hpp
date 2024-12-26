@@ -30,7 +30,10 @@ public:
     void print() override;
     void dfs(int vertex, std::vector<bool> &visited, std::function<void(int)> func);
     void bfs(int vertex, std::vector<bool> &visited, std::function<void(int)> func);
-    std::vector<std::vector<int>> Floyd();
+    // std::vector<std::vector<int>> Floyd();
+    bool is_eulerian_path_or_circuit();
+    bool is_bridge(int fromVertex, int toVertex);
+    void fleury(int startVertex);
     ~MatrixGraph() {}
 };
 
@@ -171,5 +174,102 @@ std::vector<std::vector<int>> Floyd()
         }
     }
     return min_path_len;
+}
+template <typename T>
+bool MatrixGraph<T>::is_eulerian_path_or_circuit()
+{
+    int oddCount = 0;
+    for (int i = 0; i < matrix.size(); i++)
+    {
+        int degree = std::count_if(matrix[i].begin(), matrix[i].end(), [](T x)
+                                   { return x != 0; });
+        if (degree % 2 != 0)
+        {
+            oddCount++;
+        }
+    }
+    return (oddCount == 0 || oddCount == 2); // 0 为欧拉回路，2 为欧拉路径
+}
+
+template <typename T>
+bool MatrixGraph<T>::is_bridge(int fromVertex, int toVertex)
+{
+    // 复制当前图的邻接矩阵
+    std::vector<std::vector<T>> tempMatrix = matrix;
+
+    // 删除该边
+    tempMatrix[fromVertex][toVertex] = 0;
+    if (!directed)
+    {
+        tempMatrix[toVertex][fromVertex] = 0;
+    }
+
+    // 检查删除后是否仍然连通
+    std::vector<bool> visited(matrix.size(), false);
+    std::function<void(int)> dfs = [&](int vertex)
+    {
+        visited[vertex] = true;
+        for (int i = 0; i < tempMatrix.size(); i++)
+        {
+            if (tempMatrix[vertex][i] != 0 && !visited[i])
+            {
+                dfs(i);
+            }
+        }
+    };
+
+    // 执行一次 DFS
+    dfs(fromVertex);
+
+    // 如果删除后有未访问的顶点，则是桥
+    for (int i = 0; i < matrix.size(); i++)
+    {
+        if (std::count(tempMatrix[i].begin(), tempMatrix[i].end(), 0) != tempMatrix.size() && !visited[i])
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+template <typename T>
+void MatrixGraph<T>::fleury(int startVertex)
+{
+    // 检查是否满足欧拉路径或回路条件
+    if (!is_eulerian_path_or_circuit())
+    {
+        std::cout << "This graph does not have an Eulerian Path or Circuit." << std::endl;
+        return;
+    }
+
+    // 使用栈来记录路径
+    std::vector<int> path;
+    std::function<void(int)> dfs = [&](int vertex)
+    {
+        for (int i = 0; i < matrix.size(); i++)
+        {
+            if (matrix[vertex][i] != 0) // 如果有边
+            {
+                if (!is_bridge(vertex, i) || std::count_if(matrix[vertex].begin(), matrix[vertex].end(), [](T x)
+                                                           { return x != 0; }) == 1)
+                {
+                    // 选择非桥边，或当此边是唯一可选边时，删除该边
+                    remove_edge(vertex, i);
+                    dfs(i);
+                }
+            }
+        }
+        path.push_back(vertex);
+    };
+
+    dfs(startVertex);
+
+    // 输出结果路径
+    std::reverse(path.begin(), path.end());
+    for (int v : path)
+    {
+        std::cout << v << " ";
+    }
+    std::cout << std::endl;
 }
 #endif // MATRIX_GRAPH_H
