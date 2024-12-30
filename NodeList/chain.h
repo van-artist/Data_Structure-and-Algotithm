@@ -1,3 +1,6 @@
+#ifndef CHAIN_H
+#define CHAIN_H
+
 #include <iostream>
 #include <stdexcept>
 
@@ -218,17 +221,5 @@ void Chain<T>::reverse()
     }
     headNode = prevNode; // 更新头节点
 }
-int main()
-{
-    Chain<int> chain;
-    chain.insert(0, 10);
-    chain.insert(1, 20);
-    chain.insert(2, 30);
 
-    chain.output(); // 输出：10 20 30
-
-    chain.reverse();
-    chain.output(); // 输出：30 20 10
-
-    return 0;
-}
+#endif // CHAIN_H

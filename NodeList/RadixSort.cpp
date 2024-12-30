@@ -425,9 +425,8 @@ void Chain<T>::radixSort(int range)
             }
         }
 
-        // 设置链表的新头节点
         headNode = newHead;
-        tail->next = nullptr; // 确保链表末尾为空
+        tail->next = nullptr;
     }
 }
 int main()

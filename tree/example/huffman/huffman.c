@@ -4,7 +4,6 @@
 #include <string.h>
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
-
 #define MAX_CHAR_NUM 256
 #define MAX_CODE_LEN 16
 
